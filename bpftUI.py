@@ -5,6 +5,7 @@ import time
 import webbrowser
 import zlib
 import os
+import re
 # noinspection PyCompatibility
 from tkinter import *
 
@@ -243,21 +244,26 @@ def main():
         if cookie.find('BAIDUID=') == -1:
             label_state_change(state='error')
             text_logs.insert(END, '百度网盘cookie输入不正确,请检查cookie后重试.' + '\n')
-            sys.exit()
+            raise Exception("cookie 输入错误")
+        
+        if any([ord(s) not in range(256) for s in cookie]):
+            label_state_change(state='error')
+            text_logs.insert(END, '百度网盘cookie输入不正确,拷贝的cookie中有非法字符。\n    Firefox等浏览器在长cookie时，会有省略号，是否拷贝全面？.' + '\n')
+            raise Exception("cookie 非法字符错误")
 
         # 执行获取bdstoken
         bdstoken = get_bdstoken()
         if bdstoken == 1:
             label_state_change(state='error')
             text_logs.insert(END, '没获取到bdstoken,请检查cookie和网络后重试.' + '\n')
-            sys.exit()
+            raise Exception("bdstoken 错误")
 
         # 执行获取目录列表
         dir_list_json = get_dir_list(bdstoken)
         if type(dir_list_json) != list:
             label_state_change(state='error')
             text_logs.insert(END, '没获取到网盘目录列表,请检查cookie和网络后重试.' + '\n')
-            sys.exit()
+            raise Exception("目录列表 错误")
 
         # 执行新建目录
         dir_list = [dir_json['server_filename'] for dir_json in dir_list_json]
@@ -266,7 +272,7 @@ def main():
             if create_dir_reason != 0:
                 label_state_change(state='error')
                 text_logs.insert(END, '文件夹名带非法字符,请改正文件夹名称后重试.' + '\n')
-                sys.exit()
+                raise Exception("文件夹名带非法字符 错误")
 
         # 执行转存
         for url_code in link_list:
